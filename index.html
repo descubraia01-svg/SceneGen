@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2D Scene Generator — Geração Automatizada de Cenas</title>
+  <meta name="description" content="Transforme roteiros de animação 2D em imagens de cenas individuais usando inteligência artificial.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body>
+  <div id="app" class="app-layout">
+
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <h1 class="logo">Scene<span class="logo-accent">Gen</span></h1>
+      </div>
+
+      <!-- Steps Navigation -->
+      <nav class="sidebar-nav" id="stepper">
+        <div class="step" data-step="1">
+          <span class="step-number"><span>1</span></span>
+          <span class="step-label">Configuração</span>
+          <span class="step-status-dot"></span>
+        </div>
+        <div class="step" data-step="2">
+          <span class="step-number"><span>2</span></span>
+          <span class="step-label">Roteiro</span>
+          <span class="step-status-dot"></span>
+        </div>
+        <div class="step" data-step="3">
+          <span class="step-number"><span>3</span></span>
+          <span class="step-label">Briefing</span>
+          <span class="step-status-dot"></span>
+        </div>
+        <div class="step" data-step="4">
+          <span class="step-number"><span>4</span></span>
+          <span class="step-label">Personagens</span>
+          <span class="step-status-dot"></span>
+        </div>
+        <div class="step" data-step="5">
+          <span class="step-number"><span>5</span></span>
+          <span class="step-label">Figurinos</span>
+          <span class="step-status-dot"></span>
+        </div>
+        <div class="step" data-step="6">
+          <span class="step-number"><span>6</span></span>
+          <span class="step-label">Locações</span>
+          <span class="step-status-dot"></span>
+        </div>
+        <div class="step" data-step="7">
+          <span class="step-number"><span>7</span></span>
+          <span class="step-label">Estilo Visual</span>
+          <span class="step-status-dot"></span>
+        </div>
+        <div class="step" data-step="8">
+          <span class="step-number"><span>8</span></span>
+          <span class="step-label">Geração de Prompts</span>
+          <span class="step-status-dot"></span>
+        </div>
+        <div class="step" data-step="9">
+          <span class="step-number"><span>9</span></span>
+          <span class="step-label">Galeria Final</span>
+          <span class="step-status-dot"></span>
+        </div>
+      </nav>
+
+      <!-- Footer Actions -->
+      <div class="sidebar-footer">
+        <!-- Save Button — Full Width, Clean -->
+        <button class="sidebar-save-btn" id="btnSidebarSave" title="Salvar Tudo">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+            <polyline points="17 21 17 13 7 13 7 21"/>
+            <polyline points="7 3 7 8 15 8"/>
+          </svg>
+          <span>Salvar Projeto</span>
+        </button>
+
+        <!-- Secondary Actions Row -->
+        <div class="sidebar-actions-row">
+          <button class="sidebar-icon-btn" id="btnSidebarExport" title="Exportar JSON">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+          </button>
+          <button class="sidebar-icon-btn" id="btnSidebarImport" title="Importar JSON">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </button>
+          <button class="sidebar-icon-btn" id="btnSidebarNew" title="Novo Projeto">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+          </button>
+          <button class="sidebar-icon-btn" id="btnSidebarDarkMode" title="Alternar Tema">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sun-icon">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="moon-icon" style="display:none">
+              <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Token Tracker -->
+        <div class="token-tracker-sidebar" id="tokenTracker">
+          <div class="token-usage">
+            <span id="tokensSpent">0</span> / <span id="tokensTotal">∞</span>
+          </div>
+          <div class="token-label">Tokens em produção</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <div class="main-content">
+
+      <!-- Compact Header -->
+      <header class="app-header-compact">
+        <div id="saveIndicator" class="save-indicator">Sincronizado ✓</div>
+        <div class="project-title-display" id="projectTitleDisplay">Novo Projeto</div>
+        <input type="file" id="importFileInput" accept=".json" style="display:none">
+      </header>
+
+      <!-- Page Container -->
+      <main class="page-container" id="pageContainer">
+
+        <!-- ===== PAGE 1: Configuration ===== -->
+        <section class="page" id="page1" data-page="1">
+          <div class="page-content page-centered">
+            <div class="page-header">
+              <h2>Configuração Inicial</h2>
+              <p class="page-subtitle">Configure sua chave de API e preferências de geração</p>
+            </div>
+            <div class="config-form">
+              <div class="form-group">
+                <label for="modelSelect">Modelo de geração de imagem</label>
+                <div style="display:flex; gap:8px; align-items:center">
+                  <select id="modelSelect" class="input-field" style="flex:1">
+                    <option value="gemini-3.1-flash-image-preview">Nano Banana 2 ⚡ (Recomendado)</option>
+                    <option value="gemini-3-pro-image-preview">Nano Banana Pro 🎨 (Maior qualidade)</option>
+                  </select>
+                  <div id="apiStatus" class="api-status-tiny"></div>
+                </div>
+                <div style="font-size:0.75rem; color:var(--text-tertiary); margin-top:4px">
+                  🧠 Análise de roteiro e prompts: <strong id="textModelDisplay">Nano Banana 2</strong> (Automático)
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="resolutionSelect">Resolução de saída</label>
+                  <select id="resolutionSelect" class="input-field">
+                    <option value="0.5K">0.5K — Rascunho rápido</option>
+                    <option value="1K">1K — Iteração</option>
+                    <option value="2K" selected>2K — Produção (Recomendado)</option>
+                    <option value="4K">4K — Qualidade máxima</option>
+                  </select>
+                  <div id="resolutionWarning" class="warning-text" style="display:none">⚠️ Resolução não disponível para este modelo.</div>
+                </div>
+                <div class="form-group flex-1">
+                  <label for="aspectRatioSelect">Proporção (Aspect Ratio)</label>
+                  <select id="aspectRatioSelect" class="input-field">
+                    <option value="9:16">9:16 — Vertical (Stories/Reels)</option>
+                    <option value="16:9" selected>16:9 — Horizontal (YouTube/Cinema)</option>
+                    <option value="1:1">1:1 — Quadrado</option>
+                    <option value="4:3">4:3 — TV Clássica</option>
+                    <option value="3:4">3:4 — Retrato</option>
+                    <option value="21:9">21:9 — Ultrawide Cinemático</option>
+                  </select>
+                  <div id="aspectWarning" class="warning-text" style="display:none">⚠️ Proporção não disponível para este modelo.</div>
+                </div>
+              </div>
+              <div style="background:var(--surface-2); border-radius:12px; padding:14px; margin-bottom:16px; border:1px solid var(--border)">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px">
+                  <h4 style="margin:0; font-size:0.85rem; color:var(--text-secondary)">⚙️ Diagnóstico de API</h4>
+                  <button onclick="Page1.checkApiConnection()" class="btn btn-secondary btn-sm" style="font-size:0.75rem; padding:4px 10px">🔁 Testar Conexão</button>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:0.78rem">
+                  <div style="background:var(--surface-3); border-radius:8px; padding:8px">
+                    <div style="color:var(--text-tertiary); margin-bottom:2px">🧠 Análise &amp; Prompts</div>
+                    <div style="font-weight:600; color:var(--text-primary)" id="analysisModelDisplay">Nano Banana 2</div>
+                    <div style="color:var(--success); font-size:0.7rem">Sincronizado com Imagem</div>
+                  </div>
+                  <div style="background:var(--surface-3); border-radius:8px; padding:8px">
+                    <div style="color:var(--text-tertiary); margin-bottom:2px">🎨 Geração de Imagem</div>
+                    <div style="font-weight:600; color:var(--text-primary)" id="imageModelDisplay">Nano Banana 2</div>
+                    <div style="color:var(--text-tertiary); font-size:0.7rem">Selecionado acima</div>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:10px">
+                  <label style="font-size:0.78rem; color:var(--text-secondary)">Delay entre imagens:</label>
+                  <input type="range" id="delaySlider" min="3" max="30" value="8" style="flex:1">
+                  <span id="delayValue" style="font-size:0.78rem; font-weight:600; min-width:24px">8</span>s
+                </div>
+              </div>
+              <div style="display:none" id="thinkingModeGroup">
+                <input type="password" id="apiKey" readonly>
+                <select id="thinkingMode"><option value="DYNAMIC"></option></select>
+              </div>
+              <div class="cost-estimate" id="costEstimate">
+                <span class="cost-label">Custo estimado por imagem:</span>
+                <span class="cost-value" id="costPerImage">~$0.12</span>
+              </div>
+            </div>
+          </div>
+          <div class="page-footer">
+            <div></div>
+            <button class="btn btn-primary" id="btnNext1">Começar Produção →</button>
+          </div>
+        </section>
+
+        <!-- ===== PAGE 2: Script Upload ===== -->
+        <section class="page" id="page2" data-page="2">
+          <div class="page-content page-centered">
+            <div class="page-header">
+              <h2>Upload de Roteiro</h2>
+              <p class="page-subtitle">Suba ou cole o roteiro. A análise inicial é rápida e econômica.</p>
+            </div>
+            <div class="upload-section">
+              <div class="drop-zone" id="dropZone">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <p>Arraste e solte seu arquivo aqui</p>
+                <p class="drop-hint">ou</p>
+                <button class="btn btn-secondary" id="btnChooseFile">Escolher arquivo</button>
+                <p class="drop-formats">.pdf, .md, .txt, .docx</p>
+                <input type="file" id="fileInput" accept=".pdf,.md,.txt,.docx" style="display:none">
+              </div>
+              <div id="filePreview" class="file-preview" style="display:none">
+                <div class="file-info">
+                  <span id="fileName"></span>
+                  <button class="btn-icon-sm" id="btnRemoveFile" title="Remover arquivo">✕</button>
+                </div>
+                <div class="preview-box" id="fileTextPreview"></div>
+              </div>
+              <div class="divider-or"><span>ou insira manualmente</span></div>
+              <div class="textarea-wrapper">
+                <textarea id="scriptTextarea" class="input-field script-textarea" placeholder="Cole ou escreva seu roteiro aqui... Pode estar em qualquer idioma."></textarea>
+                <span class="char-counter" id="charCounter">0 caracteres</span>
+              </div>
+            </div>
+          </div>
+          <div class="page-footer">
+            <button class="btn btn-secondary" id="btnBack2">← Voltar</button>
+            <button class="btn btn-primary" id="btnAnalyze">
+              <span class="btn-text" style="display:flex; align-items:center; gap:8px">
+                <span id="analysisStatusIcon" class="status-icon" style="display:none"></span>
+                Analisar Roteiro →
+              </span>
+              <span class="btn-loading" style="display:none">
+                <span class="spinner"></span> Analisando...
+              </span>
+            </button>
+          </div>
+        </section>
+
+        <!-- ===== PAGE 3: Briefing ===== -->
+        <section class="page" id="page3" data-page="3">
+          <div class="page-content page-centered">
+            <div class="page-header">
+              <h2>Briefing do Roteiro</h2>
+              <p class="page-subtitle">Confirme as informações dos personagens antes de enviá-los para a IA</p>
+            </div>
+            <div id="briefingAnalysisSummary" class="info-banner" style="display:none"></div>
+            <div id="briefingQuestions" class="briefing-list"></div>
+            <div id="briefingLibrarySection" class="library-import-section" style="display:none">
+              <h3>📚 Biblioteca de Personagens</h3>
+              <p class="page-subtitle" style="margin-bottom:12px">Importe personagens salvos de projetos anteriores:</p>
+              <div id="briefingLibraryGrid" class="library-grid"></div>
+            </div>
+          </div>
+          <div class="page-footer">
+            <button class="btn btn-secondary" id="btnBack3">← Voltar</button>
+            <button class="btn btn-primary" id="btnNext3">Definir Personagens →</button>
+          </div>
+        </section>
+
+        <!-- ===== PAGE 4: Characters ===== -->
+        <section class="page" id="page4" data-page="4">
+          <div class="page-content">
+            <div class="page-header">
+              <h2>Personagens &amp; Referências</h2>
+              <p class="page-subtitle">Suba referências visuais para cada personagem. A IA descreverá o DNA baseada nas imagens.</p>
+            </div>
+            <div id="charactersList" class="cards-list"></div>
+            <button class="btn btn-add" id="btnAddCharacter">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              Adicionar Personagem
+            </button>
+          </div>
+          <div class="page-footer">
+            <button class="btn btn-secondary" id="btnBack4">← Voltar</button>
+            <button class="btn btn-primary" id="btnNext4">Figurinos →</button>
+          </div>
+        </section>
+
+        <!-- ===== PAGE 5: Outfits ===== -->
+        <section class="page" id="page5" data-page="5">
+          <div class="page-content">
+            <div class="page-header">
+              <h2>Figurinos</h2>
+              <p class="page-subtitle">Defina os figurinos para cada personagem. Você pode subir referências de roupa.</p>
+            </div>
+            <div id="outfitsList" class="cards-list"></div>
+          </div>
+          <div class="page-footer">
+            <button class="btn btn-secondary" id="btnBack5">← Voltar</button>
+            <button class="btn btn-primary" id="btnNext5">Locações →</button>
+          </div>
+        </section>
+
+        <!-- ===== PAGE 6: Locations ===== -->
+        <section class="page" id="page6" data-page="6">
+          <div class="page-content">
+            <div class="page-header">
+              <h2>Locações &amp; Cenários</h2>
+              <p class="page-subtitle">Revise os cenários e anexe imagens de referência de locação</p>
+            </div>
+            <div id="locationsList" class="cards-list"></div>
+            <button class="btn btn-add" id="btnAddLocation">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              Adicionar Locação
+            </button>
+          </div>
+          <div class="page-footer">
+            <button class="btn btn-secondary" id="btnBack6">← Voltar</button>
+            <button class="btn btn-primary" id="btnNext6">Estilo →</button>
+          </div>
+        </section>
+
+        <!-- ===== PAGE 7: Style ===== -->
+        <section class="page" id="page7" data-page="7">
+          <div class="page-content">
+            <div class="page-header">
+              <h2>Referências e Estilo Visual</h2>
+              <p class="page-subtitle">Defina o estilo visual global. Este passo não consome créditos de API.</p>
+            </div>
+            <div class="style-sections">
+              <div class="style-section">
+                <h3>Referência de Estilo Visual</h3>
+                <div class="ref-upload-area" id="styleRefUpload" data-max="3" data-type="style_reference">
+                  <div class="ref-images" id="styleRefImages"></div>
+                  <label class="ref-add-thumb">
+                    ➕
+                    <input type="file" accept="image/*" style="display:none" multiple>
+                  </label>
+                </div>
+                <div class="form-group">
+                  <label for="styleDescription">Descrição do Estilo Visual</label>
+                  <textarea id="styleDescription" class="input-field" rows="6">Hand-drawn 2D cel animation style. Clean crisp ink outlines with moderate line weight variation. Flat cel shading with exactly two shadow tones. Matte flat color fills. Painted animation background plate. Final frame must look like a production cel from a 2D animated TV series.</textarea>
+                </div>
+              </div>
+              <div class="style-section" style="margin-top: 24px">
+                <h3>Color Grading / Atmosfera Global</h3>
+                <div class="color-presets" id="colorPresets" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px">
+                  <button class="chip active" data-preset="warm">☀️ Golden Hour</button>
+                  <button class="chip" data-preset="neon">💜 Neon Cyberpunk</button>
+                  <button class="chip" data-preset="vintage">📷 Vintage Filme</button>
+                  <button class="chip" data-preset="moon">🌙 Luar Frio</button>
+                  <button class="chip" data-preset="custom">✏️ Customizado</button>
+                </div>
+                <div class="form-group">
+                  <label for="colorGrading">Descrição do Color Grading</label>
+                  <textarea id="colorGrading" class="input-field" rows="3" placeholder="Descreva a atmosfera de cor global..."></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="page-footer">
+            <button class="btn btn-secondary" id="btnBack7">← Voltar</button>
+            <button class="btn btn-primary" id="btnNext7">
+              <span id="btnNext7Text">Gerar Prompts →</span>
+              <span id="btnNext7Loading" style="display:none; align-items:center; gap:8px"><span class="spinner"></span> Gerando...</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- ===== PAGE 8: Prompt Review ===== -->
+        <section class="page" id="page8" data-page="8">
+          <div class="page-content">
+            <div class="page-header">
+              <div class="page-header-row">
+                <div>
+                  <h2>Revisão de Prompts</h2>
+                  <p class="page-subtitle">Revise e edite os prompts gerados para cada cena</p>
+                </div>
+                <div class="prompt-actions">
+                  <span class="cost-estimate-inline" id="totalCostEstimate"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Generating State -->
+            <div id="promptGenerating" class="generating-overlay" style="display:none">
+              <div class="spinner-lg"></div>
+              <p style="font-size:1.05rem; font-weight:600">Gerando prompts para todas as cenas...</p>
+              <p id="promptGeneratingStatus" class="generating-sub">Favor aguardar o processamento da IA...</p>
+              <div class="generating-progress">
+                <div class="generating-progress-fill" id="promptProgressFill"></div>
+              </div>
+              <div class="generating-scene-info" id="promptProgressInfo" style="display:none"></div>
+            </div>
+
+            <!-- Prompts List -->
+            <div id="promptsList" class="cards-list"></div>
+          </div>
+          <div class="page-footer">
+            <button class="btn btn-secondary" id="btnBack8">← Voltar</button>
+            <div class="footer-actions">
+              <button class="btn btn-secondary" id="btnGenerateSelected">Gerar Selecionados</button>
+              <button class="btn btn-primary" id="btnGenerateAll">Gerar Todos →</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== PAGE 9: Gallery ===== -->
+        <section class="page" id="page9" data-page="9">
+          <div class="page-content">
+            <div class="page-header">
+              <div class="page-header-row">
+                <div>
+                  <h2>Galeria de Imagens</h2>
+                  <p class="page-subtitle" id="gallerySubtitle">Acompanhe a geração das cenas em tempo real</p>
+                </div>
+                <div class="gallery-controls">
+                  <button class="btn btn-secondary btn-sm" id="btnPauseQueue">⏸ Pausar</button>
+                  <button class="btn btn-secondary btn-sm" id="btnCancelQueue">✕ Cancelar</button>
+                  <button class="btn btn-primary btn-sm" id="btnDownloadAll" style="display:none">📦 Baixar Todos</button>
+                </div>
+              </div>
+            </div>
+            <div class="queue-progress" id="queueProgress">
+              <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width:0%"></div>
+              </div>
+              <div class="progress-info">
+                <span id="progressText">0/0 concluídos</span>
+                <span id="progressEta"></span>
+              </div>
+            </div>
+            <div id="galleryGrid" class="gallery-grid"></div>
+          </div>
+          <div class="page-footer">
+            <button class="btn btn-secondary" id="btnBack9">← Voltar para Prompts</button>
+            <button class="btn btn-primary" id="btnNewProjectGallery">Novo Projeto</button>
+          </div>
+        </section>
+
+      </main>
+    </div><!-- end main-content -->
+  </div><!-- end app-layout -->
+
+  <!-- ===== FULLSCREEN VIEWER ===== -->
+  <div class="fullscreen-overlay" id="fullscreenViewer" style="display:none">
+    <div class="fullscreen-backdrop"></div>
+    <div class="fullscreen-content">
+      <button class="fullscreen-close" id="btnCloseFullscreen">✕</button>
+      <button class="fullscreen-nav fullscreen-prev" id="btnPrevImage">‹</button>
+      <img id="fullscreenImage" class="fullscreen-img" src="" alt="">
+      <button class="fullscreen-nav fullscreen-next" id="btnNextImage">›</button>
+      <div class="fullscreen-info">
+        <span id="fullscreenTitle"></span>
+        <div class="fullscreen-actions">
+          <button class="btn btn-secondary btn-sm" id="btnFullscreenDownload">Baixar</button>
+          <button class="btn btn-secondary btn-sm" id="btnFullscreenRegenerate">Regerar</button>
+          <button class="btn btn-secondary btn-sm" id="btnFullscreenPrompt">Ver Prompt</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PROMPT MODAL ===== -->
+  <div class="modal-overlay" id="promptModal" style="display:none">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="promptModalTitle">Prompt da Cena</h3>
+        <button class="btn-icon-sm" id="btnClosePromptModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <pre id="promptModalText" class="prompt-preview-text"></pre>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCopyPrompt">Copiar Prompt</button>
+        <button class="btn btn-primary" id="btnClosePromptModal2">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CHARACTER LIBRARY MODAL ===== -->
+  <div class="modal-overlay" id="libraryModal" style="display:none">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <h3>📚 Biblioteca de Personagens</h3>
+        <button class="btn-icon-sm" id="btnCloseLibraryModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom:12px; color: var(--text-secondary); font-size:0.9rem;">Personagens salvos de projetos anteriores. Clique para importar.</p>
+        <div id="libraryModalGrid" class="library-grid"></div>
+        <p id="libraryEmptyMsg" style="display:none; color:var(--text-tertiary); text-align:center; padding:32px">Nenhum personagem salvo ainda.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCloseLibraryModal2">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TOAST CONTAINER ===== -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ===== CONFIRMATION MODAL ===== -->
+  <div class="modal-overlay" id="confirmModal" style="display:none">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h3 id="confirmTitle">Confirmar</h3>
+      </div>
+      <div class="modal-body">
+        <p id="confirmMessage"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnConfirmCancel">Cancelar</button>
+        <button class="btn btn-danger" id="btnConfirmOk">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== JS MODULES ===== -->
+  <script src="js/storage.js?v=3.0"></script>
+  <script src="js/api.js?v=3.0"></script>
+  <script src="js/fileParser.js?v=3.0"></script>
+  <script src="js/characterLibrary.js?v=3.0"></script>
+  <script src="js/pages/page1-config.js?v=3.0"></script>
+  <script src="js/pages/page2-script.js?v=3.0"></script>
+  <script src="js/pages/page3-briefing.js?v=3.0"></script>
+  <script src="js/pages/page4-characters.js?v=3.0"></script>
+  <script src="js/pages/page5-outfits.js?v=3.0"></script>
+  <script src="js/pages/page6-locations.js?v=3.0"></script>
+  <script src="js/pages/page7-style.js?v=3.0"></script>
+  <script src="js/pages/page8-prompts.js?v=3.0"></script>
+  <script src="js/pages/page9-gallery.js?v=3.0"></script>
+  <script src="js/app.js?v=3.0"></script>
+</body>
+</html>
